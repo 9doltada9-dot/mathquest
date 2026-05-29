@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useGameStore, levelFromXp, xpProgressPercent, xpForLevel } from '@/store/gameStore'
 import { SKILL_CONFIG } from '@/features/quiz/engine'
+import { useSupabaseSync } from '@/hooks/useSupabaseSync'
 import type { SkillTag } from '@/features/placement-test/questions'
 
 export default function DashboardPage() {
@@ -12,6 +13,7 @@ export default function DashboardPage() {
     placementDone, resetMissionsIfNewDay, checkStreak, claimMission,
   } = useGameStore()
 
+  useSupabaseSync()
   useEffect(() => { resetMissionsIfNewDay(); checkStreak() }, [resetMissionsIfNewDay, checkStreak])
 
   const xpPercent = xpProgressPercent(totalXp)

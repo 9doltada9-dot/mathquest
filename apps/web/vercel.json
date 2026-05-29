@@ -1,0 +1,12 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && npm run build --filter=@mathquest/web",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "npm ci",
+  "devCommand": "npm run dev --filter=@mathquest/web",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@mathquest-api-url",
+    "NEXT_PUBLIC_SUPABASE_URL": "@mathquest-supabase-url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@mathquest-supabase-anon-key"
+  }
+}

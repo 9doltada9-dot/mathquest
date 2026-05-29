@@ -1,10 +1,10 @@
-// ============================================================
-// @mathquest/utils — Shared utility functions
+﻿// ============================================================
+// @mathquest/utils โ€” Shared utility functions
 // ============================================================
 
 import type { MasteryLevel } from '@mathquest/types'
 
-// ── XP & Level Calculations ──────────────────────────────────
+// โ”€โ”€ XP & Level Calculations โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 /**
  * Calculate total XP required to reach a given level.
@@ -26,7 +26,7 @@ export function levelFromXp(totalXp: number): number {
 }
 
 /**
- * Calculate progress percentage within current level (0–100).
+ * Calculate progress percentage within current level (0โ€“100).
  */
 export function xpProgressInLevel(totalXp: number): number {
   const level = levelFromXp(totalXp)
@@ -37,7 +37,7 @@ export function xpProgressInLevel(totalXp: number): number {
   return Math.min(100, Math.floor((progress / range) * 100))
 }
 
-// ── Mastery ───────────────────────────────────────────────────
+// โ”€โ”€ Mastery โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 export const MASTERY_LABELS: Record<MasteryLevel, string> = {
   0: 'Not Started',
@@ -57,7 +57,7 @@ export const MASTERY_COLORS: Record<MasteryLevel, string> = {
   5: '#16A34A',
 }
 
-// ── Response Time Analysis ────────────────────────────────────
+// โ”€โ”€ Response Time Analysis โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 /**
  * Determine if a response is unusually fast (possible guessing).
@@ -73,18 +73,18 @@ export function detectSlowdown(currentMs: number, averageMs: number): boolean {
   return currentMs > averageMs * 2.0
 }
 
-// ── Fatigue Scoring ───────────────────────────────────────────
+// โ”€โ”€ Fatigue Scoring โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 interface FatigueSignals {
   accuracyDrop: number      // percentage points dropped vs session average
   responseSlowdown: number  // multiplier vs baseline (1.0 = normal, 2.0 = 2x slower)
-  randomClickScore: number  // 0–1 probability of random clicking
+  randomClickScore: number  // 0โ€“1 probability of random clicking
   repeatedErrors: number    // number of consecutive wrong answers
 }
 
 /**
  * Calculate a composite fatigue score from behavioral signals.
- * Returns 0–100 (higher = more fatigued).
+ * Returns 0โ€“100 (higher = more fatigued).
  */
 export function calculateFatigueScore(signals: FatigueSignals): number {
   const accuracyWeight = 30
@@ -105,7 +105,7 @@ export function calculateFatigueScore(signals: FatigueSignals): number {
   )
 }
 
-// ── Dates & Time ──────────────────────────────────────────────
+// โ”€โ”€ Dates & Time โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 /**
  * Format session duration into human-readable string.
@@ -138,11 +138,11 @@ export function isToday(date: Date): boolean {
   )
 }
 
-// ── Spaced Repetition ────────────────────────────────────────
+// โ”€โ”€ Spaced Repetition โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 /**
  * Calculate next review date using SM-2 inspired algorithm.
- * confidenceScore: 0–100 (higher = longer interval)
+ * confidenceScore: 0โ€“100 (higher = longer interval)
  */
 export function calculateNextReviewDate(confidenceScore: number, reviewCount: number): Date {
   const baseIntervalDays = confidenceScore < 40 ? 1 : confidenceScore < 70 ? 3 : 7
@@ -154,29 +154,27 @@ export function calculateNextReviewDate(confidenceScore: number, reviewCount: nu
   return nextDate
 }
 
-// ── Encouraging Messages ─────────────────────────────────────
-
-const CORRECT_MESSAGES = [
-  'Great job! 🎉',
-  'You got it! ⭐',
-  'Amazing! Keep going! 🚀',
-  'Brilliant! 🌟',
-  'Perfect! You're on fire! 🔥',
-  'Excellent work! 💪',
-]
-
-const WRONG_MESSAGES = [
-  'Almost there! Try again! 💪',
-  'Good try! Let's figure it out! 🤔',
-  'Nearly! One more shot! 🎯',
-  'Keep going — you're learning! 🌱',
-  "That's okay! Let's see why! 🔍",
-]
+// โ”€โ”€ Encouraging Messages โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 export function getCorrectFeedback(): string {
-  return CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)]
+  const msgs = [
+    'Great job!',
+    'You got it!',
+    'Amazing! Keep going!',
+    'Brilliant!',
+    'Perfect!',
+    'Excellent work!',
+  ]
+  return msgs[Math.floor(Math.random() * msgs.length)]
 }
 
 export function getWrongFeedback(): string {
-  return WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)]
+  const msgs = [
+    'Almost there! Try again!',
+    'Good try! Let us figure it out!',
+    'Nearly! One more shot!',
+    'Keep going - you are learning!',
+    'That is okay! Let us see why!',
+  ]
+  return msgs[Math.floor(Math.random() * msgs.length)]
 }

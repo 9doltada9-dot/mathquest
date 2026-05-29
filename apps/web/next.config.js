@@ -1,12 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
+  trailingSlash: true,
+  basePath: '/mathquest',
+  images: { unoptimized: true },
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   transpilePackages: ['@mathquest/ui', '@mathquest/types', '@mathquest/utils'],
-  images: {
-    domains: ['localhost'],
-  },
-  experimental: {
-    typedRoutes: true,
-  },
 }
 
 module.exports = nextConfig

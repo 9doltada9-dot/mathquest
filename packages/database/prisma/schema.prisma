@@ -1,0 +1,465 @@
+// ============================================================
+// MathQuest — Prisma Schema
+// Adaptive Learning Platform Database
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USER SYSTEM
+// ============================================================
+
+enum UserRole {
+  child
+  parent
+  admin
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(child)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  childProfile      ChildProfile?
+  parentLinks       ParentChildRelation[] @relation("ParentUser")
+  childLinks        ParentChildRelation[] @relation("ChildUser")
+  parentNotifications ParentNotification[]
+
+  @@map("users")
+}
+
+model ChildProfile {
+  id                    String         @id @default(cuid())
+  userId                String         @unique @map("user_id")
+  displayName           String         @map("display_name")
+  birthYear             Int            @map("birth_year")
+  avatar                String         @default("default")
+  currentLevel          Int            @default(1) @map("current_level")
+  xp                    Int            @default(0)
+  preferredLearningStyle LearningStyle? @map("preferred_learning_style")
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillMasteries     SkillMastery[]
+  quizSessions       QuizSession[]
+  questionAttempts   QuestionAttempt[]
+  adaptiveEvents     AdaptiveEvent[]
+  fatigueLogs        FatigueLog[]
+  xpLogs             XpLog[]
+  studentAchievements StudentAchievement[]
+  streak             Streak?
+  missionProgress    StudentMissionProgress[]
+  learningAnalytics  LearningAnalytics?
+  reviewSchedule     ReviewSchedule[]
+  weeklyReports      WeeklyReport[]
+
+  @@map("child_profiles")
+}
+
+enum LearningStyle {
+  speed_learner
+  deep_thinker
+  visual_learner
+  competitive
+  explorer
+}
+
+model ParentChildRelation {
+  id             String @id @default(cuid())
+  parentUserId   String @map("parent_user_id")
+  childUserId    String @map("child_user_id")
+  relationshipType String @default("parent") @map("relationship_type")
+
+  parent User @relation("ParentUser", fields: [parentUserId], references: [id])
+  child  User @relation("ChildUser", fields: [childUserId], references: [id])
+
+  @@unique([parentUserId, childUserId])
+  @@map("parent_child_relations")
+}
+
+// ============================================================
+// SKILL SYSTEM
+// ============================================================
+
+enum SkillCategory {
+  arithmetic
+  fractions
+  algebra
+  geometry
+  logic
+  problem_solving
+}
+
+model Skill {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  description    String
+  category       SkillCategory
+  difficultyMin  Int           @map("difficulty_min")
+  difficultyMax  Int           @map("difficulty_max")
+  parentSkillId  String?       @map("parent_skill_id")
+  sortOrder      Int           @default(0) @map("sort_order")
+
+  // Relations
+  parentSkill   Skill?          @relation("SkillTree", fields: [parentSkillId], references: [id])
+  childSkills   Skill[]         @relation("SkillTree")
+  questions     Question[]
+  skillMasteries SkillMastery[]
+  reviewSchedules ReviewSchedule[]
+
+  @@map("skills")
+}
+
+model SkillMastery {
+  id             String   @id @default(cuid())
+  childId        String   @map("child_id")
+  skillId        String   @map("skill_id")
+  masteryLevel   Int      @default(0) @map("mastery_level") // 0–5
+  confidenceScore Int     @default(0) @map("confidence_score") // 0–100
+  retentionScore  Int     @default(0) @map("retention_score") // 0–100
+  lastReviewedAt  DateTime? @map("last_reviewed_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  skill Skill        @relation(fields: [skillId], references: [id])
+
+  @@unique([childId, skillId])
+  @@map("skill_mastery")
+}
+
+// ============================================================
+// QUESTION SYSTEM
+// ============================================================
+
+enum QuestionType {
+  multiple_choice
+  input_answer
+  true_false
+  drag_drop
+  pattern
+}
+
+model Question {
+  id              String       @id @default(cuid())
+  skillId         String       @map("skill_id")
+  questionType    QuestionType @map("question_type")
+  difficulty      Int          // 1–5
+  contentText     String       @map("content_text")
+  contentImageUrl String?      @map("content_image_url")
+  mathExpression  String?      @map("math_expression")
+  explanation     String
+  estimatedTimeMs Int          @default(15000) @map("estimated_time_ms")
+  isActive        Boolean      @default(true) @map("is_active")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  skill           Skill             @relation(fields: [skillId], references: [id])
+  choices         QuestionChoice[]
+  attempts        QuestionAttempt[]
+
+  @@index([skillId, difficulty])
+  @@map("questions")
+}
+
+model QuestionChoice {
+  id          String  @id @default(cuid())
+  questionId  String  @map("question_id")
+  choiceText  String  @map("choice_text")
+  isCorrect   Boolean @map("is_correct")
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_choices")
+}
+
+// ============================================================
+// QUIZ SESSION SYSTEM
+// ============================================================
+
+enum SessionType {
+  placement
+  practice
+  review
+  challenge
+}
+
+model QuizSession {
+  id            String      @id @default(cuid())
+  childId       String      @map("child_id")
+  startedAt     DateTime    @default(now()) @map("started_at")
+  endedAt       DateTime?   @map("ended_at")
+  fatigueScore  Int         @default(0) @map("fatigue_score") // 0–100
+  totalXp       Int         @default(0) @map("total_xp")
+  sessionType   SessionType @map("session_type")
+  totalQuestions Int        @default(0) @map("total_questions")
+  accuracy      Float?      // 0.0–1.0
+
+  // Relations
+  child    ChildProfile      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  attempts QuestionAttempt[]
+  fatigueLogs FatigueLog[]
+
+  @@index([childId, startedAt])
+  @@map("quiz_sessions")
+}
+
+enum ConfidenceLevel {
+  low
+  medium
+  high
+}
+
+model QuestionAttempt {
+  id             String           @id @default(cuid())
+  sessionId      String           @map("session_id")
+  questionId     String           @map("question_id")
+  childId        String           @map("child_id")
+  answer         String
+  isCorrect      Boolean          @map("is_correct")
+  responseTimeMs Int              @map("response_time_ms")
+  hintsUsed      Int              @default(0) @map("hints_used")
+  confidenceLevel ConfidenceLevel? @map("confidence_level")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  session  QuizSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  child    ChildProfile @relation(fields: [childId], references: [id])
+
+  @@index([childId, createdAt])
+  @@index([questionId])
+  @@map("question_attempts")
+}
+
+// ============================================================
+// ADAPTIVE SYSTEM
+// ============================================================
+
+enum AdaptiveEventType {
+  difficulty_increase
+  difficulty_decrease
+  review_triggered
+  fatigue_detected
+  mastery_unlocked
+  path_changed
+}
+
+model AdaptiveEvent {
+  id                 String            @id @default(cuid())
+  childId            String            @map("child_id")
+  eventType          AdaptiveEventType @map("event_type")
+  previousDifficulty Int               @map("previous_difficulty")
+  newDifficulty      Int               @map("new_difficulty")
+  reason             String
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, createdAt])
+  @@map("adaptive_events")
+}
+
+model ReviewSchedule {
+  id             String   @id @default(cuid())
+  childId        String   @map("child_id")
+  skillId        String   @map("skill_id")
+  nextReviewAt   DateTime @map("next_review_at")
+  reviewPriority Int      @default(1) @map("review_priority") // 1–5
+  forgettingRisk Float    @default(0) @map("forgetting_risk") // 0.0–1.0
+  reviewCount    Int      @default(0) @map("review_count")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  skill Skill        @relation(fields: [skillId], references: [id])
+
+  @@unique([childId, skillId])
+  @@index([nextReviewAt])
+  @@map("review_schedule")
+}
+
+// ============================================================
+// FATIGUE SYSTEM
+// ============================================================
+
+enum FatigueType {
+  cognitive
+  emotional
+  boredom
+  frustration
+  overload
+}
+
+model FatigueLog {
+  id             String      @id @default(cuid())
+  childId        String      @map("child_id")
+  sessionId      String      @map("session_id")
+  fatigueScore   Int         @map("fatigue_score") // 0–100
+  fatigueType    FatigueType? @map("fatigue_type")
+  detectedReason String      @map("detected_reason")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  child   ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  session QuizSession  @relation(fields: [sessionId], references: [id])
+
+  @@index([childId, createdAt])
+  @@map("fatigue_logs")
+}
+
+// ============================================================
+// GAMIFICATION SYSTEM
+// ============================================================
+
+enum XpSource {
+  lesson_complete
+  streak
+  mission
+  achievement
+  placement
+}
+
+model XpLog {
+  id        String    @id @default(cuid())
+  childId   String    @map("child_id")
+  amount    Int
+  source    XpSource
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, createdAt])
+  @@map("xp_logs")
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  slug        String @unique
+  name        String
+  description String
+  xpReward    Int    @map("xp_reward")
+  iconUrl     String @map("icon_url")
+  isActive    Boolean @default(true) @map("is_active")
+
+  studentAchievements StudentAchievement[]
+
+  @@map("achievements")
+}
+
+model StudentAchievement {
+  id            String   @id @default(cuid())
+  childId       String   @map("child_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  child       ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  achievement Achievement  @relation(fields: [achievementId], references: [id])
+
+  @@unique([childId, achievementId])
+  @@map("student_achievements")
+}
+
+model Streak {
+  id               String   @id @default(cuid())
+  childId          String   @unique @map("child_id")
+  currentStreak    Int      @default(0) @map("current_streak")
+  longestStreak    Int      @default(0) @map("longest_streak")
+  lastActivityDate DateTime? @map("last_activity_date")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("streaks")
+}
+
+model DailyMission {
+  id          String      @id @default(cuid())
+  missionType String      @map("mission_type")
+  targetValue Int         @map("target_value")
+  rewardXp    Int         @map("reward_xp")
+  title       String
+  description String
+  isActive    Boolean     @default(true) @map("is_active")
+
+  studentProgress StudentMissionProgress[]
+
+  @@map("daily_missions")
+}
+
+model StudentMissionProgress {
+  id              String  @id @default(cuid())
+  childId         String  @map("child_id")
+  missionId       String  @map("mission_id")
+  currentProgress Int     @default(0) @map("current_progress")
+  completed       Boolean @default(false)
+  date            DateTime @default(now())
+
+  child   ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  mission DailyMission @relation(fields: [missionId], references: [id])
+
+  @@unique([childId, missionId, date])
+  @@map("student_mission_progress")
+}
+
+// ============================================================
+// ANALYTICS SYSTEM
+// ============================================================
+
+model LearningAnalytics {
+  id                String   @id @default(cuid())
+  childId           String   @unique @map("child_id")
+  strongestSkill    String?  @map("strongest_skill")
+  weakestSkill      String?  @map("weakest_skill")
+  avgAccuracy       Float    @default(0) @map("avg_accuracy")
+  avgResponseTimeMs Int      @default(0) @map("avg_response_time_ms")
+  motivationScore   Int      @default(50) @map("motivation_score") // 0–100
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("learning_analytics")
+}
+
+// ============================================================
+// PARENT DASHBOARD
+// ============================================================
+
+model ParentNotification {
+  id               String   @id @default(cuid())
+  parentId         String   @map("parent_id")
+  childId          String   @map("child_id")
+  notificationType String   @map("notification_type")
+  content          String
+  readAt           DateTime? @map("read_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  parent User @relation(fields: [parentId], references: [id])
+
+  @@index([parentId, createdAt])
+  @@map("parent_notifications")
+}
+
+model WeeklyReport {
+  id               String   @id @default(cuid())
+  childId          String   @map("child_id")
+  generatedSummary String   @map("generated_summary")
+  strengths        String[]
+  focusAreas       String[] @map("focus_areas")
+  fatigueNotes     String?  @map("fatigue_notes")
+  generatedAt      DateTime @default(now()) @map("generated_at")
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, generatedAt])
+  @@map("weekly_reports")
+}
